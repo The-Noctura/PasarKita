@@ -14,7 +14,10 @@ ob_start();
         <div class="hero-overlay"></div>
 
         <div class="hero-content">
-            <h1 class="hero-title">Sayur & Ayam Segar, Langsung ke Pintu Rumahmu</h1>
+            <h1 class="hero-title">
+                <span class="hero-title-main">Sayur & Ayam Segar,</span>
+                <span class="hero-title-alt">Langsung ke Pintu Rumahmu</span>
+            </h1>
             <p class="hero-subtitle">Tidak perlu ke pasar. Pesan sekarang, kami antar hari ini</p>
             <a class="hero-button" href="<?= e(url('/shop')) ?>">Pesan Sekarang</a>
         </div>

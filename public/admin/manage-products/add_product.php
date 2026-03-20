@@ -11,6 +11,8 @@ $supportsShopeePricing = db_has_column('products', 'shopee_price')
     && db_has_column('products', 'markup')
     && db_has_column('products', 'shopee_link');
 
+$supportsWeight = db_has_column('products', 'weight_grams');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $category_id = (int) ($_POST['category_id'] ?? 0);
@@ -20,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $supportsShopeePricing
         ? max(0, $shopee_price) + max(0, $markup)
         : (int) ($_POST['price'] ?? 0);
+    $weight_grams = (int) ($_POST['weight_grams'] ?? 0);
     $stock = (int) ($_POST['stock'] ?? 0);
     $badge = trim($_POST['badge'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -31,9 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($category_id <= 0) {
         $error = 'Pilih kategori produk.';
     } elseif ($supportsShopeePricing && ($shopee_price < 0 || $markup < 0)) {
-        $error = 'Harga Shopee / markup tidak valid.';
+        $error = 'Harga Modal / markup tidak valid.';
     } elseif (!$supportsShopeePricing && $price < 0) {
         $error = 'Harga tidak valid.';
+    } elseif ($supportsWeight && $weight_grams < 0) {
+        $error = 'Berat produk tidak valid.';
     } elseif ($supportsShopeePricing && $shopee_link !== '' && filter_var($shopee_link, FILTER_VALIDATE_URL) === false) {
         $error = 'Link Shopee tidak valid (harus URL lengkap, contoh: https://shopee.co.id/...).';
     } else {
@@ -45,13 +50,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Nama produk sudah digunakan.';
             } else {
                 if ($supportsShopeePricing) {
-                    $stmt = db()->prepare("INSERT INTO products (name, category_id, shopee_price, markup, shopee_link, price, stock, badge, description, is_active)
-                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$name, $category_id, $shopee_price, $markup, ($shopee_link !== '' ? $shopee_link : null), $price, $stock, $badge, $description, $is_active]);
+                    if ($supportsWeight) {
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, shopee_price, markup, shopee_link, price, stock, weight_grams, badge, description, is_active)
+                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $category_id, $shopee_price, $markup, ($shopee_link !== '' ? $shopee_link : null), $price, $stock, $weight_grams, $badge, $description, $is_active]);
+                    } else {
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, shopee_price, markup, shopee_link, price, stock, badge, description, is_active)
+                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $category_id, $shopee_price, $markup, ($shopee_link !== '' ? $shopee_link : null), $price, $stock, $badge, $description, $is_active]);
+                    }
                 } else {
-                    $stmt = db()->prepare("INSERT INTO products (name, category_id, price, stock, badge, description, is_active)
-                                         VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$name, $category_id, $price, $stock, $badge, $description, $is_active]);
+                    if ($supportsWeight) {
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, price, stock, weight_grams, badge, description, is_active)
+                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $category_id, $price, $stock, $weight_grams, $badge, $description, $is_active]);
+                    } else {
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, price, stock, badge, description, is_active)
+                                             VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $category_id, $price, $stock, $badge, $description, $is_active]);
+                    }
                 }
                                 $productId = (int) db()->lastInsertId();
                 
@@ -62,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'category_id' => $category_id,
                     'price' => $price,
                     'stock' => $stock,
+                    'weight_grams' => ($supportsWeight ? $weight_grams : null),
                     'badge' => $badge,
                     'is_active' => $is_active
                 ]);
@@ -151,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="filter-row" style="margin-bottom: 20px;">
                     <?php if ($supportsShopeePricing): ?>
                         <div class="filter-field">
-                            <label for="shopee_price">Harga Shopee (Rp)</label>
+                            <label for="shopee_price">Harga Modal (Rp)</label>
                             <input type="number" name="shopee_price" id="shopee_price" required min="0" placeholder="0" value="<?php echo htmlspecialchars($_POST['shopee_price'] ?? '0'); ?>">
                         </div>
                         <div class="filter-field">
@@ -190,7 +208,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="text" name="badge" id="badge" placeholder="Contoh: Best Seller, New" value="<?php echo htmlspecialchars($_POST['badge'] ?? ''); ?>">
                     </div>
                     <div class="filter-field">
-                        <!-- sort_order field removed -->
+                        <?php if ($supportsWeight): ?>
+                            <label for="weight_grams">Berat (gram)</label>
+                            <input type="number" name="weight_grams" id="weight_grams" min="0" placeholder="0" value="<?php echo htmlspecialchars((string) ($_POST['weight_grams'] ?? '0')); ?>">
+                        <?php else: ?>
+                            <!-- weight_grams column not available -->
+                        <?php endif; ?>
                     </div>
                     <div class="filter-field">
                         <label for="is_active">Status</label>

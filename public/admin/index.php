@@ -7,6 +7,8 @@ require_admin_auth();
 try {
     $pdo = db();
 
+    $supportsWeight = db_has_column('products', 'weight_grams');
+
     // Total Transaksi
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM orders");
     $totalTransactions = (int) $stmt->fetch()['total'];
@@ -50,6 +52,16 @@ try {
     $stmt = $pdo->query("SELECT o.id, o.created_at, o.total_amount, o.status, u.full_name, u.id as user_id FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC LIMIT 10");
     $recentTransactions = $stmt->fetchAll();
 
+    // Product summary
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM products");
+    $totalProducts = (int) (($stmt->fetch()['total'] ?? 0));
+
+    $avgWeightGrams = 0;
+    if ($supportsWeight) {
+        $stmt = $pdo->query("SELECT AVG(weight_grams) FROM products WHERE weight_grams > 0");
+        $avgWeightGrams = (int) round((float) ($stmt->fetchColumn() ?? 0));
+    }
+
 } catch (Exception $e) {
     die('Error: ' . $e->getMessage());
 }
@@ -79,6 +91,16 @@ try {
                 <div class="stat-number"><?php echo $todayTransactions; ?></div>
                 <div class="stat-label">Transaksi Hari Ini</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-number"><?php echo $totalProducts; ?></div>
+                <div class="stat-label">Total Produk</div>
+            </div>
+            <?php if ($supportsWeight): ?>
+            <div class="stat-card">
+                <div class="stat-number"><?php echo $avgWeightGrams; ?> g</div>
+                <div class="stat-label">Rata-rata Berat Produk</div>
+            </div>
+            <?php endif; ?>
             <?php foreach ($dashboardStatuses as $st): ?>
             <div class="stat-card">
                 <div class="stat-number"><?php echo $statusCounts[$st] ?? 0; ?></div>

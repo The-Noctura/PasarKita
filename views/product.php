@@ -10,6 +10,7 @@ $p = $product ?? [];
 $price = 'Rp ' . number_format((int)($p['price'] ?? 0), 0, ',', '.');
 $stock = (int)($p['stock'] ?? 0);
 $stockLabel = $stock > 0 ? 'Tersedia: ' . $stock : 'Habis';
+$weightGrams = (int) ($p['weight_grams'] ?? 0);
 // Images: support multiple images via public/products/{id}/ (sorted by filename).
 $productId = (int) ($p['id'] ?? 0);
 $images = [];
@@ -84,6 +85,9 @@ ob_start();
 
                 <h1 class="text-2xl font-semibold text-[#1f1f1f]"><?php echo e((string)($p['name'] ?? 'Produk')) ?></h1>
                 <div class="mt-2 text-sm text-gray-600">Kategori: <?php echo e((string)($p['category'] ?? 'Umum')) ?></div>
+                <?php if ($weightGrams > 0): ?>
+                    <div class="mt-1 text-sm text-gray-600">Berat: <?php echo e((string) $weightGrams) ?> g</div>
+                <?php endif; ?>
                 <div class="mt-4 text-3xl font-bold text-emerald-600"><?php echo e($price) ?></div>
                 <div class="mt-2 text-sm text-gray-600"><?php echo e($stockLabel) ?></div>
 

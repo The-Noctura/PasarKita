@@ -8,6 +8,8 @@ $supportsShopeePricing = db_has_column('products', 'shopee_price')
     && db_has_column('products', 'markup')
     && db_has_column('products', 'shopee_link');
 
+$supportsWeight = db_has_column('products', 'weight_grams');
+
 // Pagination setup
 $allowedPerPage = [25, 50, 100, 250];
 $perPage = (int) ($_GET['per_page'] ?? 25);
@@ -166,12 +168,15 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                         <th>Gambar</th>
                         <th>Kategori</th>
                         <?php if ($supportsShopeePricing): ?>
-                            <th>Harga Shopee</th>
+                            <th>Harga Modal</th>
                             <th>Markup</th>
                             <th>Harga Jual</th>
                             <th>Shopee</th>
                         <?php else: ?>
                             <th>Harga</th>
+                        <?php endif; ?>
+                        <?php if ($supportsWeight): ?>
+                            <th>Berat</th>
                         <?php endif; ?>
                         <th>Stok</th>
                         <th>Status</th>
@@ -181,7 +186,13 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                 <tbody>
                     <?php if (!$products): ?>
                     <tr>
-                        <td colspan="<?php echo $supportsShopeePricing ? 12 : 9; ?>" style="text-align:center;">Belum ada produk.</td>
+                        <?php
+                            $colspan = $supportsShopeePricing ? 11 : 8;
+                            if ($supportsWeight) {
+                                $colspan += 1;
+                            }
+                        ?>
+                        <td colspan="<?php echo $colspan; ?>" style="text-align:center;">Belum ada produk.</td>
                     </tr>
                     <?php endif; ?>
 
@@ -231,6 +242,14 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                             </td>
                         <?php else: ?>
                             <td>Rp <?php echo number_format((int)$product['price'], 0, ',', '.'); ?></td>
+                        <?php endif; ?>
+                        <?php if ($supportsWeight): ?>
+                            <td>
+                                <?php
+                                    $w = (int) ($product['weight_grams'] ?? 0);
+                                    echo $w > 0 ? ($w . ' g') : '-';
+                                ?>
+                            </td>
                         <?php endif; ?>
                         <td><?php echo (int)$product['stock']; ?></td>
                         <td>

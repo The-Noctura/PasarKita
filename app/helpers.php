@@ -1681,7 +1681,10 @@ function view(string $name, array $data = []): void
 
 function db_products_all(bool $onlyActive = true): array
 {
-    $sql = 'SELECT p.id, p.name, c.name as category, p.price, p.stock, p.badge, p.description 
+    $supportsWeight = db_has_column('products', 'weight_grams');
+    $weightSelect = $supportsWeight ? 'p.weight_grams' : '0';
+
+    $sql = 'SELECT p.id, p.name, c.name as category, p.price, ' . $weightSelect . ' as weight_grams, p.stock, p.badge, p.description 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id';
     $params = [];
@@ -1715,6 +1718,7 @@ function db_products_all(bool $onlyActive = true): array
             'category' => (string) ($row['category'] ?? ''),
             'price' => (int) ($row['price'] ?? 0),
             'stock' => (int) ($row['stock'] ?? 0),
+            'weight_grams' => (int) ($row['weight_grams'] ?? 0),
             'badge' => ($row['badge'] === null) ? null : (string) $row['badge'],
             'desc' => (string) ($row['description'] ?? ''),
         ];
@@ -1725,6 +1729,9 @@ function db_products_all(bool $onlyActive = true): array
 
 function db_products_by_ids(array $productIds, bool $onlyActive = true): array
 {
+    $supportsWeight = db_has_column('products', 'weight_grams');
+    $weightSelect = $supportsWeight ? 'p.weight_grams' : '0';
+
     $ids = [];
     foreach ($productIds as $id) {
         $id = (int) $id;
@@ -1738,7 +1745,7 @@ function db_products_by_ids(array $productIds, bool $onlyActive = true): array
     }
 
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $sql = 'SELECT p.id, p.name, c.name as category, p.price, p.stock, p.badge, p.description, p.is_active 
+    $sql = 'SELECT p.id, p.name, c.name as category, p.price, ' . $weightSelect . ' as weight_grams, p.stock, p.badge, p.description, p.is_active 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.id IN (' . $placeholders . ')';
@@ -1764,6 +1771,7 @@ function db_products_by_ids(array $productIds, bool $onlyActive = true): array
             'name' => (string) ($row['name'] ?? ''),
             'category' => (string) ($row['category'] ?? ''),
             'price' => (int) ($row['price'] ?? 0),
+            'weight_grams' => (int) ($row['weight_grams'] ?? 0),
             'stock' => (int) ($row['stock'] ?? 0),
             'badge' => ($row['badge'] === null) ? null : (string) $row['badge'],
             'desc' => (string) ($row['description'] ?? ''),
