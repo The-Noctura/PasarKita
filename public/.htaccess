@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If the request is for an existing file or directory, serve it directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # If an admin path is requested without extension, try adding .php
+    RewriteCond %{REQUEST_URI} ^/admin/ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(admin/.*)$ $1.php [L]
+
+    # Skip front controller for admin paths (handled above)
+    RewriteCond %{REQUEST_URI} !^/admin/
+
+    # Otherwise route everything through index.php
+    RewriteRule ^ index.php [L]
+</IfModule>

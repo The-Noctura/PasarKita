@@ -1,0 +1,33 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Allow /logo/... to work even though files live in /public/logo/...
+RewriteRule ^logo/(.*)$ public/logo/$1 [L]
+
+# Allow /app.css even though it lives in /public/app.css
+RewriteRule ^app\.css$ public/app.css [L]
+
+# Allow /data/... even though files live in /public/data/...
+RewriteRule ^data/(.*)$ public/data/$1 [L]
+
+# Allow /products/... even though files live in /public/products/...
+RewriteRule ^products/(.*)$ public/products/$1 [L]
+
+# Allow /uploads/... even though files live in /public/uploads/...
+RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+# Allow /assets/... even though files live in /public/assets/...
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+# Allow /admin/... to work even though files live in /public/admin/...
+# also handle case where app is in a subfolder (/PasarKita/admin/...)
+RewriteRule ^(?:[^/]+/)?admin/(.*)$ public/admin/$1 [L]
+
+# If the requested path is an existing file or directory, serve it directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Front controller
+RewriteRule ^ index.php [L]
+</IfModule>

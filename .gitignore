@@ -1,0 +1,13 @@
+# Secrets / local config
+/config/config.php
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+
+# Optional uploads (kalau nanti ada)
+/uploads/

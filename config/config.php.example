@@ -1,0 +1,22 @@
+<?php
+// Copy file ini menjadi config.php (JANGAN di-commit)
+// lalu sesuaikan kredensial DB dan Telegram.
+
+return [
+    'db' => [
+        'host' => '127.0.0.1',
+        'name' => 'pasarkita',
+        'user' => 'root',
+        'pass' => '',
+        'charset' => 'utf8mb4',
+    ],
+    'telegram' => [
+        'bot_token' => 'ISI_BOT_TOKEN',
+        'chat_id' => 'ISI_CHAT_ID',
+        'enabled' => false,
+    ],
+    'app' => [
+        'base_url' => '',
+        'session_name' => 'pasarkita_session',
+    ],
+];
