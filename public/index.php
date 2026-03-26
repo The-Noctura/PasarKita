@@ -4,10 +4,71 @@ declare(strict_types=1);
 
 session_start();
 
-require dirname(__DIR__) . '/app/helpers.php';
+require_once dirname(__DIR__) . '/app/helpers.php';
 
 $path = request_path();
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+// Admin dispatcher (implementation lives under /views/admin/*)
+if (strncmp($path, '/admin', 6) === 0) {
+    $adminBase = rtrim(str_replace('\\', '/', base_path('views/admin')), '/');
+
+    $adminPath = substr($path, 6); // remove '/admin'
+    $adminPath = ltrim($adminPath, '/');
+    if ($adminPath === '') {
+        $adminPath = 'index';
+    }
+
+    // If path refers to a directory, map to index.
+    $adminPath = rtrim($adminPath, '/');
+    if ($adminPath === '') {
+        $adminPath = 'index';
+    }
+
+    // Basic traversal protection.
+    if (preg_match('#(^|/)\.\.(?:/|$)#', $adminPath) === 1) {
+        http_response_code(400);
+        echo 'Bad request.';
+        exit;
+    }
+
+    $candidate = $adminPath;
+    if (!str_ends_with($candidate, '.php')) {
+        $candidate .= '.php';
+    }
+
+    $full = base_path('views/admin/' . $candidate);
+    if (is_dir($full)) {
+        $full = rtrim($full, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index.php';
+    }
+
+    $real = is_file($full) ? realpath($full) : false;
+    if (!is_string($real) || $real === '' || str_replace('\\', '/', $real) === '') {
+        http_response_code(404);
+        view('404', ['title' => 'Not Found']);
+        exit;
+    }
+
+    $realNorm = str_replace('\\', '/', $real);
+    if (strncmp($realNorm, $adminBase . '/', strlen($adminBase) + 1) !== 0) {
+        http_response_code(403);
+        echo 'Forbidden.';
+        exit;
+    }
+
+    $oldCwd = getcwd();
+    $targetDir = dirname($real);
+    if (is_dir($targetDir)) {
+        chdir($targetDir);
+    }
+
+    require $real;
+
+    if (is_string($oldCwd) && $oldCwd !== '') {
+        chdir($oldCwd);
+    }
+    return;
+}
 
 // Routes
 if ($method === 'GET' && $path === '/') {

@@ -19,9 +19,11 @@ RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
 # Allow /assets/... even though files live in /public/assets/...
 RewriteRule ^assets/(.*)$ public/assets/$1 [L]
 
-# Allow /admin/... to work even though files live in /public/admin/...
-# also handle case where app is in a subfolder (/PasarKita/admin/...)
-RewriteRule ^(?:[^/]+/)?admin/(.*)$ public/admin/$1 [L]
+# Admin assets: serve from /public/assets/admin/... while keeping /admin/css|js/... URLs
+RewriteRule ^(?:[^/]+/)?admin/(css|js)/(.*)$ public/assets/admin/$1/$2 [L]
+
+# Admin pages: route /admin/... to front controller (implementation lives in /views/admin)
+RewriteRule ^(?:[^/]+/)?admin(?:/(.*))?$ index.php [L]
 
 # If the requested path is an existing file or directory, serve it directly.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
