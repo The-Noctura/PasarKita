@@ -2447,24 +2447,19 @@ function db_checkout_create_order(int $userId, array $cartItems, array $options 
             $stockStmt->execute(['qty' => $pi['qty'], 'id' => $pi['product_id']]);
         }
 
-        // Tracking: order created (use DB time)
-        try {
-            $tStmt = $pdo->prepare('INSERT INTO order_tracking_events (order_id, occurred_at, title, description) VALUES (:order_id, NOW(), :title, :description)');
-            $tStmt->execute([
-                'order_id' => $orderId,
-                'title' => 'Pesanan dibuat',
-                'description' => null,
-            ]);
-
-            if ($isCod) {
+        // Tracking: DB trigger already inserts "Pesanan dibuat".
+        // Add an explicit processing event for COD so timeline is clear.
+        if ($isCod) {
+            try {
+                $tStmt = $pdo->prepare('INSERT INTO order_tracking_events (order_id, occurred_at, title, description) VALUES (:order_id, NOW(), :title, :description)');
                 $tStmt->execute([
                     'order_id' => $orderId,
                     'title' => 'Pesanan diproses',
                     'description' => 'Metode pembayaran COD dipilih.',
                 ]);
+            } catch (Throwable $e) {
+                // ignore if table doesn't exist yet
             }
-        } catch (Throwable $e) {
-            // ignore if table doesn't exist yet
         }
 
         // If shipping fee > 0 and we want to record it as a separate line, we could add an order_item of shipping here.
@@ -2562,15 +2557,18 @@ function db_checkout_create_virtual_order(int $userId, array $virtualItems, arra
             ]);
         }
 
-        try {
-            $tStmt = $pdo->prepare('INSERT INTO order_tracking_events (order_id, occurred_at, title, description) VALUES (:order_id, NOW(), :title, :description)');
-            $tStmt->execute([
-                'order_id' => $orderId,
-                'title' => 'Pesanan dibuat',
-                'description' => null,
-            ]);
-        } catch (Throwable $e) {
-            // ignore
+        // Tracking: DB trigger already inserts "Pesanan dibuat".
+        if ($isCod) {
+            try {
+                $tStmt = $pdo->prepare('INSERT INTO order_tracking_events (order_id, occurred_at, title, description) VALUES (:order_id, NOW(), :title, :description)');
+                $tStmt->execute([
+                    'order_id' => $orderId,
+                    'title' => 'Pesanan diproses',
+                    'description' => 'Metode pembayaran COD dipilih.',
+                ]);
+            } catch (Throwable $e) {
+                // ignore
+            }
         }
 
         $pdo->commit();

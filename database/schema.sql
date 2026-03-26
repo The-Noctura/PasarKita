@@ -124,6 +124,40 @@ CREATE TABLE IF NOT EXISTS `orders` (
   CONSTRAINT `orders_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `manual_debt_notes` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `customer_name` VARCHAR(150) NOT NULL,
+  `phone` VARCHAR(30) NULL,
+  `description` TEXT NULL,
+  `total_amount` INT UNSIGNED NULL,
+  `status_bayar` ENUM('hutang','lunas') NOT NULL DEFAULT 'hutang',
+  `paid_at` DATETIME NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `manual_debt_notes_status_idx` (`status_bayar`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `manual_incomes` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `amount` INT UNSIGNED NOT NULL,
+  `note` VARCHAR(255) NULL,
+  `occurred_at` DATE NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `manual_incomes_occurred_idx` (`occurred_at`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `manual_expenses` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `amount` INT UNSIGNED NOT NULL,
+  `note` VARCHAR(255) NULL,
+  `occurred_at` DATE NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `manual_expenses_occurred_idx` (`occurred_at`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `order_items` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `order_id` BIGINT UNSIGNED NOT NULL,

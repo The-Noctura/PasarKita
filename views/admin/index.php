@@ -17,36 +17,19 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM orders WHERE DATE(created_at) = CURDATE()");
     $todayTransactions = (int) $stmt->fetch()['total'];
 
-    // counts per status
-    $statusCounts = [];
+    // counts per status (only what we show on dashboard)
+    $statusCounts = [
+        'awaiting_payment' => 0,
+        'paid' => 0,
+    ];
     $stmt = $pdo->query("SELECT status, COUNT(*) as cnt FROM orders GROUP BY status");
     foreach ($stmt->fetchAll() as $r) {
-        if (is_array($r) && isset($r['status'])) {
-            $statusCounts[$r['status']] = (int) ($r['cnt'] ?? 0);
+        if (!is_array($r) || !isset($r['status'])) continue;
+        $st = (string) $r['status'];
+        if (array_key_exists($st, $statusCounts)) {
+            $statusCounts[$st] = (int) ($r['cnt'] ?? 0);
         }
     }
-
-    // define statuses we want cards for (skip 'placed' which is transitional)
-    $dashboardStatuses = [
-        'awaiting_payment',
-        'payment_review',
-        'paid',
-        'processing',
-        'shipped',
-        'delivered',
-        'cancelled',
-    ];
-
-    // reuse labels from above or define local map
-    $statusLabels = [
-        'awaiting_payment' => 'Menunggu Pembayaran',
-        'payment_review' => 'Review Pembayaran',
-        'paid' => 'Lunas',
-        'processing' => 'Diproses',
-        'shipped' => 'Dikirim',
-        'delivered' => 'Selesai',
-        'cancelled' => 'Dibatalkan',
-    ];
 
     // Recent Transactions
     $stmt = $pdo->query("SELECT o.id, o.created_at, o.total_amount, o.status, u.full_name, u.id as user_id FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC LIMIT 10");
@@ -56,11 +39,7 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM products");
     $totalProducts = (int) (($stmt->fetch()['total'] ?? 0));
 
-    $avgWeightGrams = 0;
-    if ($supportsWeight) {
-        $stmt = $pdo->query("SELECT AVG(weight_grams) FROM products WHERE weight_grams > 0");
-        $avgWeightGrams = (int) round((float) ($stmt->fetchColumn() ?? 0));
-    }
+    // Keep dashboard simple; omit weight summary here.
 
 } catch (Exception $e) {
     die('Error: ' . $e->getMessage());
@@ -95,18 +74,14 @@ try {
                 <div class="stat-number"><?php echo $totalProducts; ?></div>
                 <div class="stat-label">Total Produk</div>
             </div>
-            <?php if ($supportsWeight): ?>
             <div class="stat-card">
-                <div class="stat-number"><?php echo $avgWeightGrams; ?> g</div>
-                <div class="stat-label">Rata-rata Berat Produk</div>
+                <div class="stat-number"><?php echo $statusCounts['awaiting_payment'] ?? 0; ?></div>
+                <div class="stat-label">Menunggu Pembayaran</div>
             </div>
-            <?php endif; ?>
-            <?php foreach ($dashboardStatuses as $st): ?>
             <div class="stat-card">
-                <div class="stat-number"><?php echo $statusCounts[$st] ?? 0; ?></div>
-                <div class="stat-label"><?php echo htmlspecialchars($statusLabels[$st] ?? ucfirst(str_replace('_', ' ', $st))); ?></div>
+                <div class="stat-number"><?php echo $statusCounts['paid'] ?? 0; ?></div>
+                <div class="stat-label">Lunas</div>
             </div>
-            <?php endforeach; ?>
         </div>
         <div class="recent-transactions">
             <h2>Transaksi Terakhir</h2>

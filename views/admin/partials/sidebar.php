@@ -22,6 +22,8 @@ $base_path = $base_path ?? '';
             <h3>TRANSAKSI</h3>
             <a href="<?php echo e(url('/admin/manage-transactions/transactions')); ?>" class="nav-link <?php echo $active_menu === 'transactions' ? 'active' : ''; ?>">Transaksi</a>
         </div>
+
+     
         <div class="nav-section">
             <h3>MANAGE PENGGUNA</h3>
             <a href="<?php echo e(url('/admin/manage-account/users')); ?>" class="nav-link <?php echo in_array($active_menu, ['users','admins']) ? 'active' : ''; ?>">Pengguna</a>
@@ -31,6 +33,13 @@ $base_path = $base_path ?? '';
             <h3>MANAGE PRODUK</h3>
             <a href="<?php echo e(url('/admin/manage-categories/categories')); ?>" class="nav-link <?php echo $active_menu === 'categories' ? 'active' : ''; ?>">Kategori</a>
             <a href="<?php echo e(url('/admin/manage-products/products')); ?>" class="nav-link <?php echo $active_menu === 'products' ? 'active' : ''; ?>">Produk</a>
+        </div>
+           <div class="nav-section">
+            <h3>MANAGE KEUANGAN</h3>
+            <a href="<?php echo e(url('/admin/manage-keuangan/laporan')); ?>" class="nav-link <?php echo $active_menu === 'laporan' ? 'active' : ''; ?>">Laporan Keuangan</a>
+            <a href="<?php echo e(url('/admin/manage-keuangan/pemasukan')); ?>" class="nav-link <?php echo $active_menu === 'pemasukan' ? 'active' : ''; ?>">Pemasukan</a>
+            <a href="<?php echo e(url('/admin/manage-keuangan/pengeluaran')); ?>" class="nav-link <?php echo $active_menu === 'pengeluaran' ? 'active' : ''; ?>">Pengeluaran</a>
+                <a href="<?php echo e(url('/admin/manage-keuangan/hutang')); ?>" class="nav-link <?php echo $active_menu === 'hutang' ? 'active' : ''; ?>">Hutang</a>
         </div>
         <div class="nav-section">
             <h3>SETTINGS</h3>

@@ -26,6 +26,7 @@ try {
     $users = $stmt->fetchAll();
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        csrf_verify();
         $userId = trim($_POST['user_id'] ?? '');
         $totalAmount = (int) ($_POST['total_amount'] ?? 0);
         $status = $_POST['status'] ?? 'awaiting_payment';
@@ -54,8 +55,9 @@ try {
         } elseif ($totalAmount < 0 || $shippingFee < 0 || $handlingFee < 0) {
             $message = 'Nilai nominal tidak boleh negatif.';
         } else {
-            $stmt = $pdo->prepare('INSERT INTO orders (user_id, total_amount, status, payment_method, shipping_method, shipping_fee, handling_fee, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([
+            $cols = ['user_id', 'total_amount', 'status', 'payment_method', 'shipping_method', 'shipping_fee', 'handling_fee', 'shipping_address'];
+            $vals = ['?', '?', '?', '?', '?', '?', '?', '?'];
+            $params = [
                 $userId !== '' ? (int) $userId : null,
                 $totalAmount,
                 $status,
@@ -64,7 +66,10 @@ try {
                 $shippingFee,
                 $handlingFee,
                 $shippingAddress !== '' ? $shippingAddress : null,
-            ]);
+            ];
+
+            $stmt = $pdo->prepare('INSERT INTO orders (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $vals) . ')');
+            $stmt->execute($params);
 
             header('Location: transactions.php?added=1');
             exit;
@@ -99,6 +104,7 @@ try {
 
         <div class="form-container">
             <form method="post" class="user-form">
+                <?php echo csrf_field(); ?>
                 <div class="form-group">
                     <label for="user_id">Pengguna</label>
                     <select name="user_id" id="user_id">
