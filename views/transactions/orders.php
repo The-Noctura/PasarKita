@@ -198,6 +198,7 @@ ob_start();
                         $oid = (int)($o['id'] ?? 0);
                         $status = (string)($o['status'] ?? '');
                         $createdAt = (string)($o['created_at'] ?? '');
+                        $orderCode = order_code($oid, $createdAt);
                         $createdTs = dt_to_ts_wib($createdAt);
                         $createdAtWib = $createdTs > 0 ? ts_to_label_wib($createdTs) : format_dt_wib($createdAt);
                         $totalAmount = (int)($o['total_amount'] ?? 0);
@@ -228,7 +229,7 @@ ob_start();
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                 <div>
                                     <div class="text-xs uppercase tracking-widest text-gray-600">Order</div>
-                                    <div class="mt-1 text-lg font-semibold text-[#1f1f1f]">#<?= e((string)$oid) ?></div>
+                                    <div class="mt-1 text-lg font-semibold text-[#1f1f1f]"><?= e($orderCode) ?></div>
                                     <div class="mt-2 text-sm text-[#595959]">Tanggal: <?= e($createdAtWib) ?></div>
                                     <div class="mt-1 flex flex-wrap items-center gap-2 text-sm">
                                         <span class="text-[#595959]">Status</span>

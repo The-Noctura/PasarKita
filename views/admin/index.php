@@ -89,7 +89,7 @@ try {
                 <thead>
                     <tr>
                         <th>Tanggal</th>
-                        <th>ID Transaksi</th>
+                        <th>No. Order</th>
                         <th>Pelanggan</th>
                         <th>Total</th>
                         <th>Status</th>
@@ -99,7 +99,7 @@ try {
                     <?php foreach ($recentTransactions as $transaction): ?>
                     <tr>
                         <td><?php echo date('d/m/Y H:i', strtotime($transaction['created_at'])); ?></td>
-                        <td><?php echo $transaction['id']; ?></td>
+                        <td><?php echo htmlspecialchars(order_code((int) $transaction['id'], (string) ($transaction['created_at'] ?? ''))); ?></td>
                         <td><a href="manage-account/view_user.php?id=<?php echo $transaction['user_id']; ?>" class="user-link"><?php echo htmlspecialchars($transaction['full_name'] ?? 'N/A'); ?></a></td>
                         <td>Rp <?php echo number_format($transaction['total_amount'], 0, ',', '.'); ?></td>
                         <td><span class="status status-<?php echo $transaction['status']; ?>"><?php echo ucfirst(str_replace('_', ' ', $transaction['status'])); ?></span></td>

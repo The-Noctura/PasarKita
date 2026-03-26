@@ -1684,7 +1684,7 @@ function db_products_all(bool $onlyActive = true): array
     $supportsWeight = db_has_column('products', 'weight_grams');
     $weightSelect = $supportsWeight ? 'p.weight_grams' : '0';
 
-    $sql = 'SELECT p.id, p.name, c.name as category, p.price, ' . $weightSelect . ' as weight_grams, p.stock, p.badge, p.description 
+    $sql = 'SELECT p.id, p.category_id, p.name, c.name as category, c.slug as category_slug, p.price, ' . $weightSelect . ' as weight_grams, p.stock, p.badge, p.description 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id';
     $params = [];
@@ -1714,8 +1714,10 @@ function db_products_all(bool $onlyActive = true): array
         }
         $items[] = [
             'id' => (int) ($row['id'] ?? 0),
+            'category_id' => (int) ($row['category_id'] ?? 0),
             'name' => (string) ($row['name'] ?? ''),
             'category' => (string) ($row['category'] ?? ''),
+            'category_slug' => (string) ($row['category_slug'] ?? ''),
             'price' => (int) ($row['price'] ?? 0),
             'stock' => (int) ($row['stock'] ?? 0),
             'weight_grams' => (int) ($row['weight_grams'] ?? 0),
@@ -2179,6 +2181,70 @@ function order_status_badge_class(?string $status): string
 function order_status_is_unpaid(?string $status): bool
 {
     return order_status_normalize($status) === 'awaiting_payment';
+}
+
+function order_code(int $orderId, ?string $createdAt = null): string
+{
+    $orderId = (int) $orderId;
+    if ($orderId <= 0) {
+        return '-';
+    }
+
+    $base36 = strtoupper((string) base_convert((string) $orderId, 10, 36));
+    $base36 = str_pad($base36, 8, '0', STR_PAD_LEFT);
+
+    $datePart = '';
+    $createdAt = $createdAt !== null ? trim((string) $createdAt) : '';
+    if ($createdAt !== '') {
+        $ts = strtotime($createdAt);
+        if ($ts !== false) {
+            $datePart = date('ymd', $ts);
+        }
+    }
+
+    if ($datePart !== '') {
+        return 'PK-' . $datePart . '-' . $base36;
+    }
+
+    return 'PK-' . $base36;
+}
+
+function order_code_to_id(string $input): ?int
+{
+    $input = strtoupper(trim($input));
+    if ($input === '') {
+        return null;
+    }
+
+    if (ctype_digit($input)) {
+        $id = (int) $input;
+        return $id > 0 ? $id : null;
+    }
+
+    if (!str_starts_with($input, 'PK')) {
+        return null;
+    }
+
+    $parts = preg_split('/[^0-9A-Z]+/', $input) ?: [];
+    $parts = array_values(array_filter($parts, static fn($v) => $v !== ''));
+    if (!$parts) {
+        return null;
+    }
+
+    $last = (string) end($parts);
+    if ($last === '' || $last === 'PK') {
+        return null;
+    }
+    if (!preg_match('/^[0-9A-Z]{1,16}$/', $last)) {
+        return null;
+    }
+
+    $idStr = (string) base_convert($last, 36, 10);
+    if (!ctype_digit($idStr)) {
+        return null;
+    }
+    $id = (int) $idStr;
+    return $id > 0 ? $id : null;
 }
 
 function db_order_add_tracking_event(int $orderId, string $title, ?string $description = null, ?string $occurredAt = null): void

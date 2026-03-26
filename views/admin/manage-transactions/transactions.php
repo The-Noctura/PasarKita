@@ -99,8 +99,13 @@ try {
     $params = [];
 
     if ($filters['order_id'] !== '') {
+        $parsedOrderId = order_code_to_id($filters['order_id']);
+        if ($parsedOrderId === null) {
+            // Keep behavior predictable: unknown code yields no results.
+            $parsedOrderId = -1;
+        }
         $where[] = 'o.id = :order_id';
-        $params['order_id'] = $filters['order_id'];
+        $params['order_id'] = (int) $parsedOrderId;
     }
 
     if ($filters['user'] !== '') {
@@ -217,8 +222,8 @@ try {
                 <input type="hidden" name="per_page" value="<?php echo $perPage; ?>">
                 <div class="filter-row">
                     <div class="filter-field">
-                        <label for="order_id">ID Transaksi</label>
-                        <input type="text" name="order_id" id="order_id" value="<?php echo htmlspecialchars($filters['order_id']); ?>">
+                        <label for="order_id">No. Order</label>
+                        <input type="text" name="order_id" id="order_id" placeholder="Contoh: PK-260326-0000000Z" value="<?php echo htmlspecialchars($filters['order_id']); ?>">
                     </div>
                     <div class="filter-field">
                         <label for="user">Nama Pengguna</label>
@@ -257,7 +262,7 @@ try {
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>No. Order</th>
                         <th>User</th>
                         <th>Email</th>
                         <th>Total</th>
@@ -279,7 +284,7 @@ try {
 
                     <?php foreach ($orders as $order): ?>
                     <tr>
-                        <td><?php echo (int) $order['id']; ?></td>
+                        <td><?php echo htmlspecialchars(order_code((int) $order['id'], (string) ($order['created_at'] ?? ''))); ?></td>
                         <td><?php echo htmlspecialchars($order['full_name'] ?? '-'); ?></td>
                         <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
                         <td>Rp <?php echo number_format((int) $order['total_amount'], 0, ',', '.'); ?></td>

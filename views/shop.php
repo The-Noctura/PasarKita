@@ -5,6 +5,8 @@
 /** @var array|null $cartAdded */
 /** @var string|null $sort */
 /** @var string|null $q */
+/** @var array|null $categories */
+/** @var string|null $selectedCategory */
 
 $user = auth_user();
 $items = $products ?? [];
@@ -12,6 +14,10 @@ $cartAdded = isset($cartAdded) && is_array($cartAdded) ? $cartAdded : null;
 $sort = is_string($sort ?? null) ? (string) $sort : '';
 $q = is_string($q ?? null) ? (string) $q : (string) ($_GET['q'] ?? '');
 $q = trim($q);
+
+$categories = isset($categories) && is_array($categories) ? $categories : [];
+$selectedCategory = is_string($selectedCategory ?? null) ? trim((string) $selectedCategory) : '';
+$selectedCategory = strtolower($selectedCategory);
 
 ob_start();
 ?>
@@ -26,6 +32,7 @@ ob_start();
                 </div>
 
                 <form id="shopFilterForm" method="GET" action="<?= e(url('/shop')) ?>" class="w-full md:w-auto flex flex-col sm:flex-row sm:items-center gap-3">
+                    <input type="hidden" name="category" id="shop_category" value="<?= e($selectedCategory) ?>" />
                     <div class="w-full sm:w-72">
                         <label for="shop_q" class="sr-only">Cari produk</label>
                         <input id="shop_q" name="q" type="text" value="<?= e($q) ?>" placeholder="Cari produk..."
@@ -54,6 +61,32 @@ ob_start();
                     </div>
                 </form>
             </div>
+
+            <?php if (!empty($categories)): ?>
+                <div class="reveal mt-5">
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button"
+                            class="shop-cat-pill inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition <?= $selectedCategory === '' ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50' ?>"
+                            data-category="">
+                            Semua
+                        </button>
+
+                        <?php foreach ($categories as $c): ?>
+                            <?php
+                            $slug = strtolower(trim((string) ($c['slug'] ?? '')));
+                            $name = trim((string) ($c['name'] ?? ''));
+                            if ($slug === '' || $name === '') continue;
+                            $active = ($slug === $selectedCategory);
+                            ?>
+                            <button type="button"
+                                class="shop-cat-pill inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition <?= $active ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50' ?>"
+                                data-category="<?= e($slug) ?>">
+                                <?= e($name) ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <?php if (empty($items)): ?>
                 <div id="productList" class="reveal mt-8 rounded-3xl border border-gray-200/80 bg-white/70 backdrop-blur p-6 text-sm text-[#595959] text-center flex items-center justify-center min-h-[45vh]">
@@ -203,6 +236,10 @@ ob_start();
 
             var lastQ = q ? (q.value || '') : '';
             var lastSort = sort ? (sort.value || '') : '';
+            var lastCat = (function(){
+                var catEl = document.getElementById('shop_category');
+                return catEl ? (catEl.value || '') : '';
+            })();
             var t = null;
 
             var reqId = 0;
@@ -260,13 +297,17 @@ ob_start();
             function applyFilter(){
                 var curQ = q ? (q.value || '') : '';
                 var curSort = sort ? (sort.value || '') : '';
-                if (curQ === lastQ && curSort === lastSort) return;
+                var catEl = document.getElementById('shop_category');
+                var curCat = catEl ? (catEl.value || '') : '';
+                if (curQ === lastQ && curSort === lastSort && curCat === lastCat) return;
                 lastQ = curQ;
                 lastSort = curSort;
+                lastCat = curCat;
 
                 var params = new window.URLSearchParams();
                 if (curQ !== '') params.set('q', curQ);
                 if (curSort !== '') params.set('sort', curSort);
+                if (curCat !== '') params.set('category', curCat);
                 var url = form.action + (params.toString() ? '?' + params.toString() : '');
                 fetchProducts(url);
                 history.pushState(null, '', url);
@@ -293,12 +334,49 @@ ob_start();
                 });
             }
 
+            function setActiveCategoryPills(value) {
+                var pills = document.querySelectorAll('.shop-cat-pill');
+                if (!pills || !pills.length) return;
+                for (var i = 0; i < pills.length; i++) {
+                    var el = pills[i];
+                    var v = (el.getAttribute('data-category') || '');
+                    var isActive = (v === value);
+
+                    el.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-800');
+                    el.classList.remove('border-gray-200', 'bg-white', 'text-gray-700', 'hover:border-emerald-300', 'hover:bg-emerald-50');
+
+                    if (isActive) {
+                        el.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-800');
+                    } else {
+                        el.classList.add('border-gray-200', 'bg-white', 'text-gray-700', 'hover:border-emerald-300', 'hover:bg-emerald-50');
+                    }
+                }
+            }
+
+            var pills = document.querySelectorAll('.shop-cat-pill');
+            if (pills && pills.length) {
+                for (var i = 0; i < pills.length; i++) {
+                    pills[i].addEventListener('click', function(){
+                        var v = this.getAttribute('data-category') || '';
+                        var catEl = document.getElementById('shop_category');
+                        if (catEl) catEl.value = v;
+                        setActiveCategoryPills(v);
+                        if (t) window.clearTimeout(t);
+                        applyFilter();
+                    });
+                }
+            }
+
             window.addEventListener('popstate', function(){
                 var href = location.href;
                 // update form values from URL
                 var u = new window.URL(href);
                 if (q) q.value = u.searchParams.get('q') || '';
                 if (sort) sort.value = u.searchParams.get('sort') || '';
+                var catEl = document.getElementById('shop_category');
+                var cat = u.searchParams.get('category') || '';
+                if (catEl) catEl.value = cat;
+                setActiveCategoryPills(cat);
                 fetchProducts(href);
             });
         })();

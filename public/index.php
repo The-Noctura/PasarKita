@@ -89,6 +89,47 @@ if ($method === 'GET' && $path === '/contact') {
 if ($method === 'GET' && $path === '/shop') {
     $products = db_products_all(true);
 
+    $selectedCategory = trim((string) ($_GET['category'] ?? ''));
+    if (mb_strlen($selectedCategory) > 60) {
+        $selectedCategory = mb_substr($selectedCategory, 0, 60);
+    }
+    $selectedCategory = strtolower($selectedCategory);
+
+    $categories = [];
+    foreach ($products as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
+        $slug = strtolower(trim((string) ($p['category_slug'] ?? '')));
+        $name = trim((string) ($p['category'] ?? ''));
+        if ($slug === '' || $name === '') {
+            continue;
+        }
+        $categories[$slug] = ['slug' => $slug, 'name' => $name];
+    }
+    ksort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+    $categories = array_values($categories);
+
+    if ($selectedCategory !== '') {
+        $valid = false;
+        foreach ($categories as $c) {
+            if (($c['slug'] ?? '') === $selectedCategory) {
+                $valid = true;
+                break;
+            }
+        }
+        if (!$valid) {
+            $selectedCategory = '';
+        }
+    }
+
+    if ($selectedCategory !== '') {
+        $products = array_values(array_filter($products, static function (array $p) use ($selectedCategory): bool {
+            $slug = strtolower(trim((string) ($p['category_slug'] ?? '')));
+            return $slug !== '' && $slug === $selectedCategory;
+        }));
+    }
+
     $q = trim((string) ($_GET['q'] ?? ''));
     if (mb_strlen($q) > 80) {
         $q = mb_substr($q, 0, 80);
@@ -166,6 +207,8 @@ if ($method === 'GET' && $path === '/shop') {
         'products' => $products,
         'sort' => $sort,
         'q' => $q,
+        'categories' => $categories,
+        'selectedCategory' => $selectedCategory,
         'success' => session_flash_get('success'),
         'cartAdded' => session_flash_get('cart_added'),
     ]);
@@ -381,7 +424,7 @@ if ($method === 'POST' && $path === '/payment/confirm') {
             $username = (string) ($user['username'] ?? '');
             $link = asset($publicPath);
 
-            $caption = "Bukti Pembayaran Diupload\nOrder #" . $orderId;
+            $caption = "Bukti Pembayaran Diupload\nOrder " . order_code((int) $orderId);
             if ($name !== '') {
                 $caption .= "\nNama: " . $name;
             }
@@ -549,7 +592,7 @@ if ($method === 'GET' && $path === '/transactions/orders') {
         redirect('/login');
     }
 
-    $orders = db_orders_by_user_id((int) ($user['id'] ?? 0), 30);
+    $orders = db_orders_by_user_id((int) ($user['id'] ?? 0), 10);
     $orderIds = array_map(static fn ($o) => (int) ($o['id'] ?? 0), $orders);
     $itemsByOrder = db_order_items_by_order_ids($orderIds);
     $shipmentsByOrder = db_order_shipments_by_order_ids($orderIds);
@@ -856,11 +899,11 @@ if ($method === 'POST' && $path === '/transactions/checkout') {
         unset($_SESSION['cart_selected']);
     }
     if ($paymentMethod === 'cod') {
-        session_flash_set('success', 'Order #' . $orderId . ' berhasil dibuat. Metode pembayaran: COD.');
+        session_flash_set('success', 'Order ' . order_code((int) $orderId) . ' berhasil dibuat. Metode pembayaran: COD.');
         redirect('/transactions/orders');
     }
 
-    session_flash_set('success', 'Order #' . $orderId . ' berhasil dibuat. Silakan lanjutkan pembayaran.');
+    session_flash_set('success', 'Order ' . order_code((int) $orderId) . ' berhasil dibuat. Silakan lanjutkan pembayaran.');
     redirect('/transactions/payment?id=' . $orderId);
 }
 

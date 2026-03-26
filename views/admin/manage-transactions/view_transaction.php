@@ -125,7 +125,7 @@ try {
 
     <div class="main-content">
         <div class="content-header">
-            <h1>Detail Transaksi #<?php echo (int) $order['id']; ?></h1>
+            <h1>Detail Transaksi <?php echo htmlspecialchars(order_code((int) $order['id'], (string) ($order['created_at'] ?? ''))); ?></h1>
             <a href="transactions.php" class="btn-primary">Kembali</a>
         </div>
 

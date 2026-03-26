@@ -6,6 +6,7 @@
 
 $order = isset($order) && is_array($order) ? $order : [];
 $orderId = (int) ($order['id'] ?? 0);
+$orderCode = order_code($orderId, (string) ($order['created_at'] ?? ''));
 $totalAmount = (int) ($order['total_amount'] ?? 0);
 $status = (string) ($order['status'] ?? '');
 $paymentProof = $order['payment_proof'] ?? null;
@@ -36,7 +37,7 @@ ob_start();
         <div class="relative max-w-[900px] mx-auto px-4 py-10 md:py-14">
             <div class="reveal">
                 <span class="inline-block text-xs tracking-widest uppercase text-emerald-700/80 bg-emerald-600/10 px-3 py-1 rounded-full mb-4">Pembayaran</span>
-                <h1 class="text-2xl md:text-4xl font-semibold text-[#1f1f1f]">Bayar Order #<?= e((string)$orderId) ?></h1>
+                <h1 class="text-2xl md:text-4xl font-semibold text-[#1f1f1f]">Bayar Order <?= e($orderCode) ?></h1>
                 <p class="mt-3 text-[#4b4b4b]">Total yang harus dibayar: <span class="font-semibold text-emerald-600"><?= e($totalLabel) ?></span></p>
             </div>
 
