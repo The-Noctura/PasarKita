@@ -2049,7 +2049,13 @@ function cart_total_amount(array $cartItems): int
 function payment_methods(): array
 {
     return [
-        'qr' => 'Pembayaran via QR',
+        // Keep legacy key 'qr' for backward compatibility.
+        'qris' => 'QRIS',
+        'qr' => 'QRIS',
+        'bank_bni' => 'Transfer Bank (BNI)',
+        'bank_bri' => 'Transfer Bank (BRI)',
+        'bank_bca' => 'Transfer Bank (BCA)',
+        'cod' => 'COD',
     ];
 }
 
@@ -2290,7 +2296,8 @@ function db_order_attach_payment_proof(int $orderId, int $userId, string $proofP
         'id' => $orderId,
         'user_id' => $userId,
         'status' => 'payment_review',
-        'payment_method' => 'qr',
+        // Only used if order.payment_method is NULL (legacy rows).
+        'fallback_payment_method' => array_key_exists('qris', payment_methods()) ? 'qris' : 'qr',
     ];
 
     if (db_has_column('orders', 'payment_proof')) {
@@ -2300,7 +2307,8 @@ function db_order_attach_payment_proof(int $orderId, int $userId, string $proofP
 
     // Mark payment as waiting admin confirmation after proof upload.
     $setParts[] = 'status = :status';
-    $setParts[] = 'payment_method = :payment_method';
+    // Do NOT override the chosen payment method (e.g., bank_bni/bri/bca). Only fill NULLs.
+    $setParts[] = 'payment_method = COALESCE(payment_method, :fallback_payment_method)';
 
     $sql = 'UPDATE orders SET ' . implode(', ', $setParts) . ' WHERE id = :id AND user_id = :user_id LIMIT 1';
     $stmt = db()->prepare($sql);
@@ -2393,12 +2401,15 @@ function db_checkout_create_order(int $userId, array $cartItems, array $options 
 
         $finalTotal = $total + max(0, $shippingFee) + max(0, $handlingFee);
 
+        $isCod = ($paymentMethod === 'cod');
+        $initialStatus = $isCod ? 'processing' : 'awaiting_payment';
+
         $cols = ['user_id', 'total_amount', 'status', 'payment_method', 'shipping_method', 'shipping_fee', 'shipping_address'];
         $vals = [':user_id', ':total_amount', ':status', ':payment_method', ':shipping_method', ':shipping_fee', ':shipping_address'];
         $params = [
             'user_id' => $userId,
             'total_amount' => $finalTotal,
-            'status' => 'awaiting_payment',
+            'status' => $initialStatus,
             'payment_method' => $paymentMethod,
             'shipping_method' => $shippingMethod,
             'shipping_fee' => $shippingFee,
@@ -2444,6 +2455,14 @@ function db_checkout_create_order(int $userId, array $cartItems, array $options 
                 'title' => 'Pesanan dibuat',
                 'description' => null,
             ]);
+
+            if ($isCod) {
+                $tStmt->execute([
+                    'order_id' => $orderId,
+                    'title' => 'Pesanan diproses',
+                    'description' => 'Metode pembayaran COD dipilih.',
+                ]);
+            }
         } catch (Throwable $e) {
             // ignore if table doesn't exist yet
         }
@@ -2495,12 +2514,15 @@ function db_checkout_create_virtual_order(int $userId, array $virtualItems, arra
 
         $finalTotal = $total + max(0, $shippingFee) + max(0, $handlingFee);
 
+        $isCod = ($paymentMethod === 'cod');
+        $initialStatus = $isCod ? 'processing' : 'awaiting_payment';
+
         $cols = ['user_id', 'total_amount', 'status', 'payment_method', 'shipping_method', 'shipping_fee', 'shipping_address'];
         $vals = [':user_id', ':total_amount', ':status', ':payment_method', ':shipping_method', ':shipping_fee', ':shipping_address'];
         $params = [
             'user_id' => $userId,
             'total_amount' => $finalTotal,
-            'status' => 'awaiting_payment',
+            'status' => $initialStatus,
             'payment_method' => $paymentMethod,
             'shipping_method' => $shippingMethod,
             'shipping_fee' => $shippingFee,

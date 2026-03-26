@@ -67,6 +67,12 @@ function display_payment_method(?string $key): string
     if ($key === '' || $key === '-') {
         return '-';
     }
+
+    $methods = payment_methods();
+    if (array_key_exists($key, $methods)) {
+        return (string) $methods[$key];
+    }
+
     if (in_array($key, ['qr', 'qris'], true)) {
         return 'QRIS';
     }
@@ -251,8 +257,10 @@ ob_start();
                             <div id="orderDetails<?= e((string)$oid) ?>" class="mt-5 order-details" aria-hidden="true">
                                 <?php
                                 $isCancelled = $statusKey === 'cancelled';
+                                $isCod = ($paymentMethod === 'cod');
                                 $proofAtWib = pick_tracking_time_wib((array) $tracking, ['bukti pembayaran dikirim', 'bukti pembayaran']);
                                 $paidConfirmedAtWib = pick_tracking_time_wib((array) $tracking, ['pembayaran dikonfirmasi', 'payment confirmed', 'payment_confirmed']);
+                                $processedAtWib = pick_tracking_time_wib((array) $tracking, ['pesanan diproses', 'diproses', 'processing']);
                                 $shippedAtWib = pick_tracking_time_wib((array) $tracking, ['pesanan dikirim', 'dikirim', 'shipped', 'shipping', 'resi']);
                                 $doneAtWib = pick_tracking_time_wib((array) $tracking, ['pesanan selesai', 'selesai', 'delivered', 'diterima', 'completed']);
 
@@ -260,11 +268,17 @@ ob_start();
                                 $isShippedOrAfter = in_array($statusKey, ['shipped', 'delivered'], true);
                                 $isDelivered = $statusKey === 'delivered';
 
-                                $step2Label = ($statusKey === 'payment_review') ? 'Menunggu Konfirmasi' : 'Pesanan Dibayarkan';
-                                $step2Sub = ($statusKey === 'payment_review') ? '(Bukti terkirim)' : '(' . $totalLabel . ')';
-                                $step2Dt = ($statusKey === 'payment_review')
-                                    ? $proofAtWib
-                                    : ($isPaidOrAfter ? $paidConfirmedAtWib : '-');
+                                if ($isCod) {
+                                    $step2Label = 'Pesanan Diproses';
+                                    $step2Sub = '(COD)';
+                                    $step2Dt = ($processedAtWib !== '' ? $processedAtWib : ($createdAtWib !== '' ? $createdAtWib : '-'));
+                                } else {
+                                    $step2Label = ($statusKey === 'payment_review') ? 'Menunggu Konfirmasi' : 'Pesanan Dibayarkan';
+                                    $step2Sub = ($statusKey === 'payment_review') ? '(Bukti terkirim)' : '(' . $totalLabel . ')';
+                                    $step2Dt = ($statusKey === 'payment_review')
+                                        ? $proofAtWib
+                                        : ($isPaidOrAfter ? $paidConfirmedAtWib : '-');
+                                }
 
                                 $step3Dt = $isShippedOrAfter ? $shippedAtWib : '-';
                                 $step4Dt = $isDelivered ? $doneAtWib : '-';

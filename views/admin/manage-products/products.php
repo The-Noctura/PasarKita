@@ -205,7 +205,8 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                         </td>
                         <td>
                             <?php
-                            $productDir = __DIR__ . '/../../products/' . $product['id'] . '/';
+                            $productId = (int) ($product['id'] ?? 0);
+                            $productDir = rtrim(base_path('public/products/' . $productId), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                             $imageCount = 0;
                             $firstImage = '';
                             if (is_dir($productDir)) {
@@ -219,7 +220,8 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                                 }
                             }
                             if ($firstImage) {
-                                echo '<img src="../../products/' . $product['id'] . '/' . htmlspecialchars($firstImage) . '" alt="Gambar" style="max-width: 60px; max-height: 60px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;"><br>';
+                                $imgUrl = asset('products/' . rawurlencode((string) $productId) . '/' . rawurlencode($firstImage));
+                                echo '<img src="' . e($imgUrl) . '" alt="Gambar" style="max-width: 60px; max-height: 60px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;"><br>';
                                 echo '<small>' . $imageCount . ' gambar</small>';
                             } else {
                                 echo '<span style="color: #999;">Tidak ada</span>';

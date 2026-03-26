@@ -759,9 +759,12 @@ if ($method === 'POST' && $path === '/transactions/checkout') {
         redirect('/transactions/cart');
     }
 
-    // Fixed methods (prevent tampering)
-    $paymentMethod = 'qr';
+    // Fixed shipping method; payment method is user-selected but validated.
     $shippingMethod = 'standard';
+    $availablePaymentMethods = payment_methods();
+    $postedPaymentMethod = strtolower(trim((string) ($_POST['payment_method'] ?? '')));
+    $defaultPaymentMethod = array_key_exists('qris', $availablePaymentMethods) ? 'qris' : (array_key_exists('qr', $availablePaymentMethods) ? 'qr' : (string) array_key_first($availablePaymentMethods));
+    $paymentMethod = array_key_exists($postedPaymentMethod, $availablePaymentMethods) ? $postedPaymentMethod : $defaultPaymentMethod;
 
     $primaryAddress = db_user_primary_address_by_user_id((int) ($user['id'] ?? 0));
     if (!$primaryAddress) {
@@ -818,7 +821,8 @@ if ($method === 'POST' && $path === '/transactions/checkout') {
             $lines[] = 'HP: ' . $phone;
         }
         $lines[] = 'Total: ' . $fmtIdr((int) $totalAmount);
-        $lines[] = 'Bayar: ' . strtoupper($paymentMethod) . ' | Kirim: ' . $shippingMethod;
+        $payLabel = (string) ($availablePaymentMethods[$paymentMethod] ?? strtoupper($paymentMethod));
+        $lines[] = 'Bayar: ' . $payLabel . ' | Kirim: ' . $shippingMethod;
         $lines[] = 'Alamat: ' . (string) (preg_replace("/\s+/u", ' ', trim($shippingAddress)) ?? trim($shippingAddress));
         $lines[] = '';
         $lines[] = 'Item:';
@@ -851,6 +855,11 @@ if ($method === 'POST' && $path === '/transactions/checkout') {
         // Reset selection; next checkout defaults to all remaining items.
         unset($_SESSION['cart_selected']);
     }
+    if ($paymentMethod === 'cod') {
+        session_flash_set('success', 'Order #' . $orderId . ' berhasil dibuat. Metode pembayaran: COD.');
+        redirect('/transactions/orders');
+    }
+
     session_flash_set('success', 'Order #' . $orderId . ' berhasil dibuat. Silakan lanjutkan pembayaran.');
     redirect('/transactions/payment?id=' . $orderId);
 }

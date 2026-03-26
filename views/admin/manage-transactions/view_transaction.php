@@ -31,6 +31,9 @@ function formatPaymentMethod(?string $method): string
         'qr' => 'QRIS',
         'qris' => 'QRIS',
         'cod' => 'COD',
+        'bank bni' => 'Transfer Bank (BNI)',
+        'bank bri' => 'Transfer Bank (BRI)',
+        'bank bca' => 'Transfer Bank (BCA)',
         'bank transfer' => 'Bank Transfer',
         'virtual account' => 'Virtual Account',
         'ewallet' => 'E-Wallet',
@@ -221,7 +224,7 @@ try {
                                         $files = glob($prodDir . '/*.{jpg,jpeg,png,webp,gif,JPG,JPEG,PNG,WEBP,GIF}', GLOB_BRACE);
                                         if (is_array($files) && count($files) > 0) {
                                             $first = basename($files[0]);
-                                            $imgUrl = '../../products/' . rawurlencode((string)$pid) . '/' . rawurlencode($first);
+                                            $imgUrl = asset('products/' . rawurlencode((string) $pid) . '/' . rawurlencode($first));
                                         }
                                     }
                                 }

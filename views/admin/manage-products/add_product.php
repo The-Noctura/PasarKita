@@ -80,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'is_active' => $is_active
                 ]);
                 
-                // Upload images to products/{id}/
+                // Upload images to public/products/{id}/
                 if (isset($_FILES['images']) && is_array($_FILES['images']['error'])) {
-                    $uploadDir = __DIR__ . '/../../products/' . $productId . '/';
+                    $uploadDir = rtrim(base_path('public/products/' . $productId), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0777, true);
                     }

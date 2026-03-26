@@ -26,7 +26,7 @@ if ($id > 0) {
         }
         
         // Delete product images folder
-        $productDir = __DIR__ . '/../../products/' . $id . '/';
+        $productDir = rtrim(base_path('public/products/' . $id), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         if (is_dir($productDir)) {
             $files = glob($productDir . '*');
             if (is_array($files)) {

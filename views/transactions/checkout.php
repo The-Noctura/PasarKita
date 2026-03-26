@@ -21,9 +21,13 @@ $shippingOpts = shipping_options();
 $shippingFee = (int) (($shippingOpts['standard']['fee'] ?? null) ?? 10000);
 $shippingMethodLabel = (string) (($shippingOpts['standard']['label'] ?? null) ?? 'Standar');
 
-$paymentMethods = payment_methods();
-$paymentMethodKey = 'qr';
-$paymentMethodLabel = (string) (($paymentMethods[$paymentMethodKey] ?? null) ?? 'Pembayaran via QR');
+$paymentMethods = isset($paymentMethods) && is_array($paymentMethods) ? $paymentMethods : payment_methods();
+
+$defaultPaymentMethod = array_key_exists('qris', $paymentMethods) ? 'qris' : (array_key_exists('qr', $paymentMethods) ? 'qr' : (string) array_key_first($paymentMethods));
+$selectedPaymentMethod = $defaultPaymentMethod;
+$paymentMethodLabel = (string) (($paymentMethods[$selectedPaymentMethod] ?? null) ?? 'Metode Pembayaran');
+
+$hasQris = array_key_exists('qris', $paymentMethods);
 
 ob_start();
 ?>
@@ -175,8 +179,39 @@ ob_start();
 
                             <div class="mt-3">
                                 <div class="text-sm font-medium text-[#4b4b4b]">Metode Pembayaran</div>
-                                <div class="mt-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#1f1f1f]">
-                                    <?= e($paymentMethodLabel) ?>
+                                <div class="mt-2">
+                                    <select name="payment_method"
+                                        form="checkoutForm"
+                                        class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                                        <?php
+                                        $order = ['bank_bni', 'bank_bri', 'bank_bca', 'qris', 'cod'];
+                                        $seen = [];
+                                        foreach ($order as $k) {
+                                            if (!array_key_exists($k, $paymentMethods)) {
+                                                continue;
+                                            }
+                                            if (isset($seen[$k])) {
+                                                continue;
+                                            }
+                                            $seen[$k] = true;
+                                            $label = (string) ($paymentMethods[$k] ?? $k);
+                                            $selected = $k === $selectedPaymentMethod ? 'selected' : '';
+                                            echo '<option value="' . e($k) . '" ' . $selected . '>' . e($label) . '</option>';
+                                        }
+                                        foreach ($paymentMethods as $k => $label) {
+                                            $k = (string) $k;
+                                            if ($hasQris && $k === 'qr') {
+                                                continue;
+                                            }
+                                            if ($k === '' || isset($seen[$k])) {
+                                                continue;
+                                            }
+                                            $seen[$k] = true;
+                                            $selected = $k === $selectedPaymentMethod ? 'selected' : '';
+                                            echo '<option value="' . e($k) . '" ' . $selected . '>' . e((string) $label) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
                                 </div>
                             </div>
 
@@ -195,7 +230,6 @@ ob_start();
                             <input type="hidden" name="shipping_method" value="standard" />
                             <input type="hidden" name="shipping_fee" value="<?= e((string)$shippingFee) ?>" />
                             <input type="hidden" name="handling_fee" value="<?= e((string)$handlingFee) ?>" />
-                            <input type="hidden" name="payment_method" value="<?= e($paymentMethodKey) ?>" />
                             <input type="hidden" name="shipping_address" value="<?= e($shippingAddressText) ?>" />
                             <button type="submit"
                                 class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 text-white px-5 py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.99] transition focus:outline-none focus:ring-2 focus:ring-emerald-200">
@@ -208,7 +242,7 @@ ob_start();
                             Kembali ke Shop
                         </a>
 
-                        <p class="mt-4 text-xs text-gray-600">Catatan: Setelah order dibuat, kamu akan diarahkan ke halaman pembayaran untuk upload bukti transfer (SS).</p>
+                        <p class="mt-4 text-xs text-gray-600">Catatan: Setelah order dibuat, kamu akan diarahkan sesuai metode pembayaran yang dipilih.</p>
                     </div>
 
                     <script>

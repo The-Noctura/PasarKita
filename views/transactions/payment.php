@@ -9,6 +9,17 @@ $orderId = (int) ($order['id'] ?? 0);
 $totalAmount = (int) ($order['total_amount'] ?? 0);
 $status = (string) ($order['status'] ?? '');
 $paymentProof = $order['payment_proof'] ?? null;
+$paymentMethodKey = strtolower(trim((string) ($order['payment_method'] ?? '')));
+$paymentMethods = payment_methods();
+$paymentMethodLabel = (string) ($paymentMethods[$paymentMethodKey] ?? (trim((string) ($order['payment_method'] ?? '')) !== '' ? (string) ($order['payment_method'] ?? '') : '-'));
+
+$bankAccounts = [
+    'bank_bni' => ['bank' => 'BNI', 'account' => '1234567890', 'holder' => 'PT PasarKita Dummy'],
+    'bank_bri' => ['bank' => 'BRI', 'account' => '9876543210', 'holder' => 'PT PasarKita Dummy'],
+    'bank_bca' => ['bank' => 'BCA', 'account' => '1122334455', 'holder' => 'PT PasarKita Dummy'],
+];
+$bankInfo = $bankAccounts[$paymentMethodKey] ?? null;
+$isBank = is_array($bankInfo);
 
 $statusKey = order_status_normalize($status);
 
@@ -43,13 +54,32 @@ ob_start();
 
             <div class="reveal mt-8 grid md:grid-cols-2 gap-6">
                 <div class="rounded-3xl border border-gray-200/70 bg-white/85 backdrop-blur p-6">
-                    <h2 class="text-lg font-semibold text-[#1f1f1f]">QR Pembayaran</h2>
-                    <p class="mt-2 text-sm text-[#595959]">Scan QR berikut untuk melakukan pembayaran. (QR masih kosong untuk sementara)</p>
+                    <h2 class="text-lg font-semibold text-[#1f1f1f]">Metode Pembayaran</h2>
+                    <p class="mt-2 text-sm text-[#595959]">Metode yang dipilih: <span class="font-semibold"><?= e($paymentMethodLabel) ?></span></p>
 
-                    <div class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center">
-                        <div class="text-sm text-gray-600">[ QR CODE ]</div>
-                        <div class="mt-2 text-xs text-gray-500">Belum tersedia</div>
-                    </div>
+                    <?php if (in_array($paymentMethodKey, ['qr', 'qris'], true)): ?>
+                        <div class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center">
+                            <div class="text-sm text-gray-600">[ QR CODE ]</div>
+                            <div class="mt-2 text-xs text-gray-500">Belum tersedia</div>
+                        </div>
+                    <?php elseif ($paymentMethodKey === 'cod'): ?>
+                        <div class="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-sm text-[#4b4b4b]">
+                            Pembayaran dilakukan saat barang diterima (COD).
+                        </div>
+                    <?php else: ?>
+                        <div class="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-sm text-[#4b4b4b]">
+                            Silakan lakukan pembayaran sesuai metode yang dipilih, lalu upload bukti pembayaran.
+                        </div>
+
+                        <?php if ($isBank): ?>
+                            <div class="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                                <div class="text-xs uppercase tracking-widest text-gray-600">Rekening (Dummy)</div>
+                                <div class="mt-2 text-sm text-[#1f1f1f] font-semibold"><?= e((string) ($bankInfo['bank'] ?? 'Bank')) ?></div>
+                                <div class="mt-1 text-sm text-[#4b4b4b]">No. Rek: <span class="font-semibold"><?= e((string) ($bankInfo['account'] ?? '-')) ?></span></div>
+                                <div class="mt-1 text-sm text-[#4b4b4b]">a.n. <?= e((string) ($bankInfo['holder'] ?? '-')) ?></div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
 
                     <div class="mt-5 text-sm text-[#595959]">
                         <div class="flex items-center justify-between">
@@ -71,29 +101,34 @@ ob_start();
                 </div>
 
                 <div class="rounded-3xl border border-gray-200/70 bg-white/85 backdrop-blur p-6">
-                    <h2 class="text-lg font-semibold text-[#1f1f1f]">Upload Bukti Transfer (SS)</h2>
-                    <p class="mt-2 text-sm text-[#595959]">Setelah bayar, upload screenshot bukti transfer. Status akan menjadi <span class="font-semibold">Menunggu Konfirmasi</span> sampai admin mengonfirmasi.</p>
+                    <?php if ($paymentMethodKey === 'cod'): ?>
+                        <h2 class="text-lg font-semibold text-[#1f1f1f]">COD</h2>
+                        <p class="mt-2 text-sm text-[#595959]">Tidak perlu upload bukti pembayaran. Admin akan memproses pesananmu.</p>
+                    <?php else: ?>
+                        <h2 class="text-lg font-semibold text-[#1f1f1f]">Upload Bukti Pembayaran</h2>
+                        <p class="mt-2 text-sm text-[#595959]">Setelah bayar, upload screenshot bukti pembayaran. Status akan menjadi <span class="font-semibold">Menunggu Konfirmasi</span> sampai admin mengonfirmasi.</p>
 
-                    <form class="mt-5" method="POST" action="<?= e(url('/payment/confirm')) ?>" enctype="multipart/form-data">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="order_id" value="<?= e((string)$orderId) ?>" />
-                        <input type="hidden" name="MAX_FILE_SIZE" value="2097152" />
+                        <form class="mt-5" method="POST" action="<?= e(url('/payment/confirm')) ?>" enctype="multipart/form-data">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= e((string)$orderId) ?>" />
+                            <input type="hidden" name="MAX_FILE_SIZE" value="2097152" />
 
-                        <label class="block text-sm font-medium text-[#4b4b4b]">File bukti pembayaran</label>
-                        <input
-                            type="file"
-                            name="payment_proof"
-                            accept="image/png,image/jpeg,image/webp"
-                            class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                            required
-                        />
-                        <div class="mt-2 text-xs text-gray-600">Format: JPG/PNG/WebP. Maks 2MB.</div>
+                            <label class="block text-sm font-medium text-[#4b4b4b]">File bukti pembayaran</label>
+                            <input
+                                type="file"
+                                name="payment_proof"
+                                accept="image/png,image/jpeg,image/webp"
+                                class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                required
+                            />
+                            <div class="mt-2 text-xs text-gray-600">Format: JPG/PNG/WebP. Maks 2MB.</div>
 
-                        <button type="submit"
-                            class="mt-5 w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 text-white px-5 py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.99] transition focus:outline-none focus:ring-2 focus:ring-emerald-200">
-                            Kirim Bukti
-                        </button>
-                    </form>
+                            <button type="submit"
+                                class="mt-5 w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 text-white px-5 py-3 shadow-sm hover:bg-emerald-700 active:scale-[0.99] transition focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                                Kirim Bukti
+                            </button>
+                        </form>
+                    <?php endif; ?>
 
                     <a href="<?= e(url('/transactions/orders')) ?>"
                         class="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-emerald-600/30 text-[#2b2b2b] px-5 py-3 text-sm hover:border-emerald-600 hover:bg-emerald-50 transition focus:outline-none focus:ring-2 focus:ring-emerald-200">

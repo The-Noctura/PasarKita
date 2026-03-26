@@ -29,7 +29,7 @@ $categories = db()->query("SELECT id, name FROM categories ORDER BY name ASC")->
 
 // Get existing images
 $existingImages = [];
-$productDir = __DIR__ . '/../../products/' . $id . '/';
+$productDir = rtrim(base_path('public/products/' . $id), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 if (is_dir($productDir)) {
     $files = glob($productDir . '*');
     if (is_array($files)) {
@@ -272,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div id="existingImages" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
                         <?php foreach ($existingImages as $img): ?>
                             <div class="image-preview" style="position: relative; width: 100px; height: 100px;">
-                                <img src="../../products/<?php echo $id; ?>/<?php echo htmlspecialchars($img); ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
+                                <img src="<?php echo e(asset('products/' . rawurlencode((string) $id) . '/' . rawurlencode($img))); ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
                                 <button type="button" onclick="removeExisting(this)" style="position: absolute; top: 2px; right: 2px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
                                 <input type="hidden" name="delete_images[]" value="<?php echo htmlspecialchars($img); ?>" class="delete-input" disabled>
                             </div>
