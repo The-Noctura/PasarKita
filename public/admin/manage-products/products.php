@@ -4,9 +4,8 @@ require_once '../../../app/helpers.php';
 
 require_admin_auth();
 
-$supportsShopeePricing = db_has_column('products', 'shopee_price')
-    && db_has_column('products', 'markup')
-    && db_has_column('products', 'shopee_link');
+$supportsCostPricing = db_has_column('products', 'cost_price')
+    && db_has_column('products', 'markup');
 
 $supportsWeight = db_has_column('products', 'weight_grams');
 
@@ -167,11 +166,10 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                         <th>Nama Produk</th>
                         <th>Gambar</th>
                         <th>Kategori</th>
-                        <?php if ($supportsShopeePricing): ?>
+                        <?php if ($supportsCostPricing): ?>
                             <th>Harga Modal</th>
                             <th>Markup</th>
                             <th>Harga Jual</th>
-                            <th>Shopee</th>
                         <?php else: ?>
                             <th>Harga</th>
                         <?php endif; ?>
@@ -187,7 +185,7 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                     <?php if (!$products): ?>
                     <tr>
                         <?php
-                            $colspan = $supportsShopeePricing ? 11 : 8;
+                            $colspan = $supportsCostPricing ? 10 : 8;
                             if ($supportsWeight) {
                                 $colspan += 1;
                             }
@@ -229,17 +227,10 @@ $totalProductsCount = (int) db()->query("SELECT COUNT(*) FROM products")->fetchC
                             ?>
                         </td>
                         <td><?php echo htmlspecialchars($product['category_name'] ?? '-'); ?></td>
-                        <?php if ($supportsShopeePricing): ?>
-                            <td>Rp <?php echo number_format((int) ($product['shopee_price'] ?? 0), 0, ',', '.'); ?></td>
+                        <?php if ($supportsCostPricing): ?>
+                            <td>Rp <?php echo number_format((int) ($product['cost_price'] ?? 0), 0, ',', '.'); ?></td>
                             <td>Rp <?php echo number_format((int) ($product['markup'] ?? 0), 0, ',', '.'); ?></td>
                             <td><strong>Rp <?php echo number_format((int) ($product['price'] ?? 0), 0, ',', '.'); ?></strong></td>
-                            <td>
-                                <?php if (!empty($product['shopee_link'])): ?>
-                                    <a class="btn-outline" href="<?php echo htmlspecialchars((string) $product['shopee_link']); ?>" target="_blank" rel="noopener" style="padding: 6px 10px;">Buka</a>
-                                <?php else: ?>
-                                    <span style="color:#999;">-</span>
-                                <?php endif; ?>
-                            </td>
                         <?php else: ?>
                             <td>Rp <?php echo number_format((int)$product['price'], 0, ',', '.'); ?></td>
                         <?php endif; ?>

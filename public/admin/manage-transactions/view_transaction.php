@@ -38,7 +38,6 @@ function formatPaymentMethod(?string $method): string
         'gopay' => 'GoPay',
         'ovo' => 'OVO',
         'dana' => 'DANA',
-        'shopeepay' => 'ShopeePay',
     ];
 
     return $map[$normalized] ?? ucwords($normalized);
@@ -99,9 +98,8 @@ try {
         exit;
     }
 
-    $stmt = $pdo->prepare('SELECT oi.product_name, oi.unit_price, oi.qty, oi.line_total, oi.product_id, p.shopee_link
+    $stmt = $pdo->prepare('SELECT oi.product_name, oi.unit_price, oi.qty, oi.line_total, oi.product_id
                            FROM order_items oi
-                           LEFT JOIN products p ON p.id = oi.product_id
                            WHERE oi.order_id = ? ORDER BY oi.id ASC');
     $stmt->execute([$id]);
     $items = $stmt->fetchAll();
@@ -203,12 +201,11 @@ try {
                                 <th>Harga</th>
                                 <th>Qty</th>
                                 <th>Subtotal</th>
-                                <th>Shopee</th>
                             </tr>
                 </thead>
                 <tbody>
                             <?php if (!$items): ?>
-                            <tr><td colspan="5" style="text-align:center;">Tidak ada item.</td></tr>
+                            <tr><td colspan="4" style="text-align:center;">Tidak ada item.</td></tr>
                     <?php endif; ?>
                             <?php foreach ($items as $item): ?>
                     <tr>
@@ -246,14 +243,6 @@ try {
                         <td>Rp <?php echo number_format((int) $item['unit_price'], 0, ',', '.'); ?></td>
                         <td><?php echo (int) $item['qty']; ?></td>
                                 <td>Rp <?php echo number_format((int) $item['line_total'], 0, ',', '.'); ?></td>
-                                <td>
-                                    <?php $slink = trim((string) ($item['shopee_link'] ?? '')); ?>
-                                    <?php if ($slink !== '' && filter_var($slink, FILTER_VALIDATE_URL)): ?>
-                                        <a class="btn-outline" href="<?php echo htmlspecialchars($slink); ?>" target="_blank" rel="noopener">Shopee</a>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

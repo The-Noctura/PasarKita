@@ -7,20 +7,18 @@ require_admin_auth();
 $error = '';
 $categories = db()->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
 
-$supportsShopeePricing = db_has_column('products', 'shopee_price')
-    && db_has_column('products', 'markup')
-    && db_has_column('products', 'shopee_link');
+$supportsCostPricing = db_has_column('products', 'cost_price')
+    && db_has_column('products', 'markup');
 
 $supportsWeight = db_has_column('products', 'weight_grams');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $category_id = (int) ($_POST['category_id'] ?? 0);
-    $shopee_price = (int) ($_POST['shopee_price'] ?? 0);
+    $cost_price = (int) ($_POST['cost_price'] ?? 0);
     $markup = (int) ($_POST['markup'] ?? 0);
-    $shopee_link = trim((string) ($_POST['shopee_link'] ?? ''));
-    $price = $supportsShopeePricing
-        ? max(0, $shopee_price) + max(0, $markup)
+    $price = $supportsCostPricing
+        ? max(0, $cost_price) + max(0, $markup)
         : (int) ($_POST['price'] ?? 0);
     $weight_grams = (int) ($_POST['weight_grams'] ?? 0);
     $stock = (int) ($_POST['stock'] ?? 0);
@@ -33,14 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Nama produk wajib diisi.';
     } elseif ($category_id <= 0) {
         $error = 'Pilih kategori produk.';
-    } elseif ($supportsShopeePricing && ($shopee_price < 0 || $markup < 0)) {
+    } elseif ($supportsCostPricing && ($cost_price < 0 || $markup < 0)) {
         $error = 'Harga Modal / markup tidak valid.';
-    } elseif (!$supportsShopeePricing && $price < 0) {
+    } elseif (!$supportsCostPricing && $price < 0) {
         $error = 'Harga tidak valid.';
     } elseif ($supportsWeight && $weight_grams < 0) {
         $error = 'Berat produk tidak valid.';
-    } elseif ($supportsShopeePricing && $shopee_link !== '' && filter_var($shopee_link, FILTER_VALIDATE_URL) === false) {
-        $error = 'Link Shopee tidak valid (harus URL lengkap, contoh: https://shopee.co.id/...).';
     } else {
         try {
             // Check if name already exists
@@ -49,15 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->fetchColumn() > 0) {
                 $error = 'Nama produk sudah digunakan.';
             } else {
-                if ($supportsShopeePricing) {
+                if ($supportsCostPricing) {
                     if ($supportsWeight) {
-                        $stmt = db()->prepare("INSERT INTO products (name, category_id, shopee_price, markup, shopee_link, price, stock, weight_grams, badge, description, is_active)
-                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$name, $category_id, $shopee_price, $markup, ($shopee_link !== '' ? $shopee_link : null), $price, $stock, $weight_grams, $badge, $description, $is_active]);
-                    } else {
-                        $stmt = db()->prepare("INSERT INTO products (name, category_id, shopee_price, markup, shopee_link, price, stock, badge, description, is_active)
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, cost_price, markup, price, stock, weight_grams, badge, description, is_active)
                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$name, $category_id, $shopee_price, $markup, ($shopee_link !== '' ? $shopee_link : null), $price, $stock, $badge, $description, $is_active]);
+                        $stmt->execute([$name, $category_id, $cost_price, $markup, $price, $stock, $weight_grams, $badge, $description, $is_active]);
+                    } else {
+                        $stmt = db()->prepare("INSERT INTO products (name, category_id, cost_price, markup, price, stock, badge, description, is_active)
+                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $category_id, $cost_price, $markup, $price, $stock, $badge, $description, $is_active]);
                     }
                 } else {
                     if ($supportsWeight) {
@@ -167,10 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="filter-row" style="margin-bottom: 20px;">
-                    <?php if ($supportsShopeePricing): ?>
+                    <?php if ($supportsCostPricing): ?>
                         <div class="filter-field">
-                            <label for="shopee_price">Harga Modal (Rp)</label>
-                            <input type="number" name="shopee_price" id="shopee_price" required min="0" placeholder="0" value="<?php echo htmlspecialchars($_POST['shopee_price'] ?? '0'); ?>">
+                            <label for="cost_price">Harga Modal (Rp)</label>
+                            <input type="number" name="cost_price" id="cost_price" required min="0" placeholder="0" value="<?php echo htmlspecialchars($_POST['cost_price'] ?? '0'); ?>">
                         </div>
                         <div class="filter-field">
                             <label for="markup">Markup (Rp)</label>
@@ -178,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="filter-field">
                             <label for="sell_price_preview">Harga Jual (Otomatis)</label>
-                            <input type="number" id="sell_price_preview" readonly placeholder="0" value="<?php echo htmlspecialchars((string) ((int) ($_POST['shopee_price'] ?? 0) + (int) ($_POST['markup'] ?? 0))); ?>">
+                            <input type="number" id="sell_price_preview" readonly placeholder="0" value="<?php echo htmlspecialchars((string) ((int) ($_POST['cost_price'] ?? 0) + (int) ($_POST['markup'] ?? 0))); ?>">
                         </div>
                     <?php else: ?>
                         <div class="filter-field">
@@ -191,17 +187,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="number" name="stock" id="stock" required min="0" placeholder="0" value="<?php echo htmlspecialchars($_POST['stock'] ?? '0'); ?>">
                     </div>
                 </div>
-
-                <?php if ($supportsShopeePricing): ?>
-                    <div class="filter-row" style="margin-bottom: 20px;">
-                        <div class="filter-field" style="flex: 1;">
-                            <label for="shopee_link">Link Produk Shopee (Opsional)</label>
-                            <input type="url" name="shopee_link" id="shopee_link" placeholder="https://shopee.co.id/..." value="<?php echo htmlspecialchars($_POST['shopee_link'] ?? ''); ?>">
-                            <small style="color: #666;">Link ini hanya tersimpan untuk admin dan tidak ditampilkan di publik.</small>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
                 <div class="filter-row" style="margin-bottom: 20px;">
                     <div class="filter-field">
                         <label for="badge">Badge (Opsional)</label>
@@ -337,19 +322,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     addImageUpload();
 
-    (function initShopeePricingCalc() {
-        const shopee = document.getElementById('shopee_price');
+    (function initCostPricingCalc() {
+        const cost = document.getElementById('cost_price');
         const markup = document.getElementById('markup');
         const preview = document.getElementById('sell_price_preview');
-        if (!shopee || !markup || !preview) return;
+        if (!cost || !markup || !preview) return;
 
         const recalc = () => {
-            const s = Math.max(0, parseInt(shopee.value || '0', 10) || 0);
+            const s = Math.max(0, parseInt(cost.value || '0', 10) || 0);
             const m = Math.max(0, parseInt(markup.value || '0', 10) || 0);
             preview.value = String(s + m);
         };
 
-        shopee.addEventListener('input', recalc);
+        cost.addEventListener('input', recalc);
         markup.addEventListener('input', recalc);
         recalc();
     })();

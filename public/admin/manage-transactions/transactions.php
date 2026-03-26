@@ -37,7 +37,6 @@ function formatPaymentMethod(?string $method): string
         'gopay' => 'GoPay',
         'ovo' => 'OVO',
         'dana' => 'DANA',
-        'shopeepay' => 'ShopeePay',
     ];
 
     return $map[$normalized] ?? ucwords($normalized);
